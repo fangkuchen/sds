@@ -50,12 +50,8 @@ size_t writemem(void *contents, size_t size, size_t nmemb, void *userp) {
 }
 
 void buildsite(char response[], char *name, char *val, char *unit) {
-  strcat(response, "<li>");
-  strcat(response, name);
-  strcat(response, ": ");
-  strcat(response, val);
-  strcat(response, unit);
-  strcat(response, "</li>");
+  snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), 
+      "<li>%s: %s%s</li>", name, val, unit);
 }
 
 int main(int argc, char *argv[]) {
@@ -81,33 +77,37 @@ int main(int argc, char *argv[]) {
     die("could not listen");
 
   while(1) {
-    int clientfd = accept(sockfd, (struct sockaddr *)&host_addr, (socklen_t *)&host_addrlen);
+    int clientfd = accept(sockfd, (struct sockaddr *)&host_addr, 
+        (socklen_t *)&host_addrlen);
     if (clientfd < 0) {
       fprintf(stderr, "could not accept connection\n");
       continue;
     }
-    getpeername(clientfd, (struct sockaddr *)&client_addr, (socklen_t *)&client_addrlen);
+    getpeername(clientfd, (struct sockaddr *)&client_addr, 
+        (socklen_t *)&client_addrlen);
 
     memset(buffer, 0, BUFFER_SIZE);
     read(clientfd, buffer, BUFFER_SIZE);
     char method[BUFFER_SIZE], uri[BUFFER_SIZE], version[BUFFER_SIZE];
     sscanf(buffer, "%s %s %s", method, uri, version);
-    printf("[%s:%u] %s %s %s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), method, version, uri);
+    printf("[%s:%u] %s %s %s\n", inet_ntoa(client_addr.sin_addr), 
+        ntohs(client_addr.sin_port), method, version, uri);
 
     memset(response, 0, BUFFER_SIZE);
 
     if (strcmp("GET", method) != 0) {
-      strncat(response, NOTALLOWED_HEADER, BUFFER_SIZE - strlen(NOTALLOWED_HEADER) - 1);
-      strncat(response, "<html>method not allowed</html>", BUFFER_SIZE - strlen(response) - 1);
+      printf("%s\n", uri);
+      snprintf(response + strlen(response), BUFFER_SIZE - strlen(response),
+          "%s%s", NOTALLOWED_HEADER, "<html>method not allowed</html>");
     }
     else if (strcmp("/", uri)) {
       printf("%s\n", uri);
-      strncat(response, NOTFOUND_HEADER, BUFFER_SIZE - strlen(NOTFOUND_HEADER) - 1);
-      strncat(response, "<html>page not found</html>", BUFFER_SIZE - strlen(response) - 1);
+      snprintf(response + strlen(response), BUFFER_SIZE - strlen(response),
+          "%s%s", NOTFOUND_HEADER, "<html>page not found</html>");
     }
     else {
-      strncat(response, OK_HEADER, BUFFER_SIZE - strlen(OK_HEADER) - 1);
-      strcat(response, "<html><h1>Sensor data</h1><ul>");
+      snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), 
+          "%s%s", OK_HEADER, "<html><h1>Sensor data</h1><ul>");
       int sensorsc = sizeof(sensors)/sizeof(sensors[0]);
       int i;
       for (i = 0; i < sensorsc; i++) {
@@ -130,7 +130,6 @@ int main(int argc, char *argv[]) {
         curl_easy_setopt(curl, CURLOPT_URL, sensors[i].addr);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writemem);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-
         curlresponse = curl_easy_perform(curl);
         if (curlresponse != CURLE_OK) {
           fprintf(stderr, "request failed\n");
@@ -151,3 +150,4 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
+

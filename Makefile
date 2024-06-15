@@ -1,7 +1,7 @@
 default: build
 
 build: clean
-	cp sensors.def.h sensors.h
+	@if [ ! -f sensors.h ]; then cp sensors.def.h sensors.h; fi
 	gcc -Wall -o sds sds.c -l curl
 
 install: build
