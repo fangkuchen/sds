@@ -54,9 +54,14 @@ void buildsite(char response[], char *name, char *val, char *unit) {
       "<li>%s: %s%s</li>", name, val, unit);
 }
 
+void writeresponse(char response[], int clientfd, size_t responselen) {
+  write(clientfd, response, strlen(response));
+  close(clientfd);
+}
+
 int main(int argc, char *argv[]) {
   if (argc < 3 || strcmp(argv[1], "-p") != 0)
-      die("usage: mts [-p PORT]");
+    die("usage: mts [-p PORT]");
   char response[BUFFER_SIZE];
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   int port = atoi(argv[2]);
@@ -99,54 +104,56 @@ int main(int argc, char *argv[]) {
       printf("%s\n", uri);
       snprintf(response + strlen(response), BUFFER_SIZE - strlen(response),
           "%s%s", NOTALLOWED_HEADER, "<html>method not allowed</html>");
+      writeresponse(response, clientfd, strlen(response));
+      continue;
     }
-    else if (strcmp("/", uri)) {
+    if (strcmp("/", uri)) {
       printf("%s\n", uri);
       snprintf(response + strlen(response), BUFFER_SIZE - strlen(response),
           "%s%s", NOTFOUND_HEADER, "<html>page not found</html>");
+      writeresponse(response, clientfd, strlen(response));
+      continue;
     }
-    else {
-      snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), 
-          "%s%s", OK_HEADER, "<html><h1>Sensor data</h1><ul>");
-      int sensorsc = sizeof(sensors)/sizeof(sensors[0]);
-      int i;
-      for (i = 0; i < sensorsc; i++) {
-        char *name = sensors[i].name;
-        char *unit = sensors[i].unit;
-        CURL *curl;
-        CURLcode curlresponse;
+    snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), 
+        "%s%s", OK_HEADER, "<html><h1>Sensor data</h1><ul>");
+    int sensorsc = sizeof(sensors)/sizeof(sensors[0]);
+    int i;
+    for (i = 0; i < sensorsc; i++) {
+      char *name = sensors[i].name;
+      char *unit = sensors[i].unit;
+      CURL *curl;
+      CURLcode curlresponse;
 
-        MemoryStruct chunk;
-        chunk.memory = malloc(1);
-        chunk.size = 0;
+      MemoryStruct chunk;
+      chunk.memory = malloc(1);
+      chunk.size = 0;
 
 
-        curl = curl_easy_init();
-        if (curl == NULL) {
-          fprintf(stderr, "request failed\n");
-          continue;
-        }
-
-        curl_easy_setopt(curl, CURLOPT_URL, sensors[i].addr);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writemem);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-        curlresponse = curl_easy_perform(curl);
-        if (curlresponse != CURLE_OK) {
-          fprintf(stderr, "request failed\n");
-          continue;
-        }
-
-        char *val = chunk.memory;
-        buildsite(response, name, val, unit);
-
-        free(chunk.memory);
-        curl_easy_cleanup(curl);
-
+      curl = curl_easy_init();
+      if (curl == NULL) {
+        fprintf(stderr, "request failed\n");
+        continue;
       }
-      strcat(response, "</ul></html>");
+
+      curl_easy_setopt(curl, CURLOPT_URL, sensors[i].addr);
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writemem);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+      curlresponse = curl_easy_perform(curl);
+      if (curlresponse != CURLE_OK) {
+        fprintf(stderr, "request failed\n");
+        continue;
+      }
+
+      char *val = chunk.memory;
+      buildsite(response, name, val, unit);
+
+      free(chunk.memory);
+      curl_easy_cleanup(curl);
+
     }
-    write(clientfd, response, strlen(response));
-    close(clientfd);
+    strcat(response, "</ul></html>");
+
+    writeresponse(response, clientfd, strlen(response));
   }
   return 0;
 }
