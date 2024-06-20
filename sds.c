@@ -171,7 +171,8 @@ int main(int argc, char *argv[]) {
       curl_easy_cleanup(curl);
 
     }
-    strcat(response, "</ul></html>");
+    snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), 
+        "</ul></html>");
 
     writeresponse(response, clientfd, strlen(response));
   }
