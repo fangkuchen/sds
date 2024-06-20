@@ -14,14 +14,14 @@
   this program. If not, see <https://www.gnu.org/licenses/>. 
 */
 
-#include <stdio.h>
-#include <sys/socket.h>
-#include <curl/curl.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <curl/curl.h>
+#include <sys/socket.h>
 
 
 #define BUFFER_SIZE 1024
@@ -46,7 +46,16 @@ void die(char *msg) {
   exit(1);
 }
 
+void buildsite(char response[], char *name, char *val, char *unit);
+size_t writemem(void *contents, size_t size, size_t nmemb, void *userp);
+void writeresponse(char response[], int clientfd, size_t responselen);
+
 #include "sensors.h"
+
+void buildsite(char response[], char *name, char *val, char *unit) {
+  snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), 
+      "<li>%s: %s%s</li>", name, val, unit);
+}
 
 size_t writemem(void *contents, size_t size, size_t nmemb, void *userp) {
   size_t realsize = size * nmemb;
@@ -63,11 +72,6 @@ size_t writemem(void *contents, size_t size, size_t nmemb, void *userp) {
   mem->memory[mem->size] = 0;
 
   return realsize;
-}
-
-void buildsite(char response[], char *name, char *val, char *unit) {
-  snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), 
-      "<li>%s: %s%s</li>", name, val, unit);
 }
 
 void writeresponse(char response[], int clientfd, size_t responselen) {
