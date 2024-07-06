@@ -5,7 +5,7 @@ build: clean
 	gcc -Wall -o sds sds.c -l curl
 
 install: build
-	cp -f mts /usr/bin/sds
+	cp -f sds /usr/bin/sds
 	chmod +x /usr/bin/sds
 
 uninstall:
