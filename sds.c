@@ -80,7 +80,7 @@ void writeresponse(char response[], int clientfd, size_t responselen) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 3 || strcmp(argv[1], "-p") != 0)
+  if (argc < 3 || strcmp(argv[1], "-p"))
     die("usage: mts [-p PORT]");
   char response[BUFFER_SIZE];
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
 
     memset(response, 0, BUFFER_SIZE);
 
-    if (strcmp("GET", method) != 0) {
+    if (strcmp("GET", method)) {
       printf("%s\n", uri);
       snprintf(response + strlen(response), BUFFER_SIZE - strlen(response),
           "%s%s", NOTALLOWED_HEADER, "<html>method not allowed</html>");
